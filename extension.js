@@ -28,9 +28,9 @@ var menuExtraActions = 	[
 							["Change snap channel...", "echo Change snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; read -p 'Enter channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
 							["Snap info...", "echo Snap info...; echo; read -p 'Enter snap name: ' snapname; echo; snap info $snapname"],
 							["Find snap...", "echo Find snap...; echo; read -p 'Enter one word to search: ' snapsearch; echo; snap find $snapsearch"],
-							["Hold auto refresh for one hour", "snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour')"],
-							["Hold auto refresh for one day", "snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day')"],
-							["Hold auto refresh for one week", "snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week')"]
+							["Hold auto refresh for one hour", "echo Hold auto refresh for one hour; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour')"],
+							["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day')"],
+							["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week')"]
 						];
 
 let SnapMenu = GObject.registerClass(
