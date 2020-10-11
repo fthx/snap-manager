@@ -10,6 +10,7 @@ const { Clutter, Gio, GObject, Shell, St } = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Main = imports.ui.main;
 const Util = imports.misc.util;
+const Me = ExtensionUtils.getCurrentExtension();
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
@@ -44,23 +45,24 @@ class SnapMenu extends PanelMenu.Button {
     _init() {
         super._init(0.0, 'Snap manager');
 
-        let hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
-        let icon = new St.Icon({
-        	// here you can change the menu icon (waiting for snap symbolic icon...)
-            icon_name: 'applications-system-symbolic',
-            style_class: 'system-status-icon',
-        });
-        // here you can remove the menu label (step 1/2)
-        let label = new St.Label({
-        	text: "Snaps",
-        	y_align: Clutter.ActorAlign.CENTER,
-        });
-
-        hbox.add_child(icon);
-        // here you can remove the menu label (step 2/2)
-        hbox.add_child(label);
-        hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
-        this.add_child(hbox);
+        this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
+        // import snap customized icon
+        this.iconPath = Me.path + "/snap.png";
+		this.gioIcon = Gio.icon_new_for_string(this.iconPath);
+		this.icon = new St.Icon({ gicon: this.gioIcon, style_class: 'system-status-icon' });
+		// desaturate your customized icon if you want to
+		//this.iconEffect = new Clutter.DesaturateEffect();
+		//this.icon.add_effect(this.iconEffect);
+        // here you can add a menu label (step 1/2)
+        //this.label = new St.Label({
+        //	text: "Snaps",
+        //	y_align: Clutter.ActorAlign.CENTER,
+        //});
+        this.hbox.add_child(this.icon);
+        // here you can add a menu label (step 2/2)
+        //this.hbox.add_child(this.label);
+        this.hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
+        this.add_child(this.hbox);
 		
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
