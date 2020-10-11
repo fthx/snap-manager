@@ -47,7 +47,7 @@ class SnapMenu extends PanelMenu.Button {
 
         this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         // import snap customized icon
-        this.iconPath = Me.path + "/snap.png";
+        this.iconPath = Me.path + "/snap-symbolic.svg";
 		this.gioIcon = Gio.icon_new_for_string(this.iconPath);
 		this.icon = new St.Icon({ gicon: this.gioIcon, style_class: 'system-status-icon' });
 		// desaturate your customized icon if you want to
