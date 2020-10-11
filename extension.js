@@ -17,7 +17,7 @@ const PopupMenu = imports.ui.popupMenu;
 // here you can add/remove/hack the actions
 var menuActions =	[	
 						["List installed snaps", "echo List installed snaps; echo; snap list"],
-						["Recent snap changes", "echo Recent snap changes; echo; snap changes"],
+						["List recent snap changes", "echo List recent snap changes; echo; snap changes"],
 						["List snap updates", "echo List snap updates; echo; snap refresh --list"],
 						["Refresh installed snaps", "echo Refresh installed snaps; echo; snap refresh"],
 						["Install snap...", "echo Install snap...; echo; read -p 'Enter snap name: ' snapname; read -p 'Enter channel (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel"],
@@ -37,7 +37,7 @@ var menuRefreshOptions =	[
 							["Hold auto refresh for one hour", "echo Hold auto refresh for one hour; echo; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 							["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 							["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
-							["Cancel refresh delay", "echo Cancel hold auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
+							["Cancel auto refresh delay", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
 						]
 
 let SnapMenu = GObject.registerClass(
