@@ -26,7 +26,7 @@ var menuActions =	[
 
 // here you can add/remove/hack the extra actions					
 var menuExtraActions = 	[
-							["Change snap channel...", "echo Change snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; read -p 'Enter channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
+							["Refresh snap channel...", "echo Refresh snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels/{y=1;next}y'; echo; read -p 'Enter new channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
 							["Snap info...", "echo Snap info...; echo; read -p 'Enter snap name: ' snapname; echo; snap info $snapname"],
 							["Find snap...", "echo Find snap...; echo; read -p 'Enter one word to search: ' snapsearch; echo; snap find $snapsearch"]
 						];
@@ -84,39 +84,36 @@ class SnapMenu extends PanelMenu.Button {
 		})
     }
     
+    // launch bash command
+    _executeAction(command) {
+    	try {
+    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
+			} catch(err) {
+    			Main.notify("Error: unable to execute command in GNOME Terminal");
+		}
+	}
+    
     // main menu items
     _addSnapMenuItem(item, index, array) {
     	if (index == 3) {
 	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-	    }
+	    };
 	    this.menu.addAction(item[0],event => {
-	    	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"" + item[1] + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
-			} catch(err) {
-    			Main.notify("Error: unable to execute command in GNOME Terminal");
-			}
+	    	this._executeAction(item[1])
 	    });
 	}
 	
 	// extra actions submenu items
 	_addExtraSubmenuItem(item, index, array) {
 	    this.submenu1.menu.addAction(item[0],event => {
-	    	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"" + item[1] + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
-			} catch(err) {
-    			Main.notify("Error: unable to execute command in GNOME Terminal");
-			}
+	    	this._executeAction(item[1])
 	    });
 	}
 	
 	// refresh options submenu items
 	_addRefreshSubmenuItem(item, index, array) {
 	    this.submenu2.menu.addAction(item[0],event => {
-	    	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"" + item[1] + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
-			} catch(err) {
-    			Main.notify("Error: unable to execute command in GNOME Terminal");
-			}
+	    	this._executeAction(item[1])
 	    });
 	}
 });
