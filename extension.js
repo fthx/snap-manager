@@ -13,6 +13,12 @@ const Util = imports.misc.util;
 const Me = ExtensionUtils.getCurrentExtension();
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
+const GLib = imports.gi.GLib;
+const Lang = imports.lang;
+const ByteArray = imports.byteArray;
+
+// color of snap icon when snap updates available (default = "#E95420")
+const REFRESH_ICON_COLOR = "#E95420";
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -28,7 +34,9 @@ var menuActions =	[
 var menuExtraActions = 	[
 							["Refresh snap channel...", "echo Refresh snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter new channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
 							["Snap info...", "echo Snap info...; echo; read -p 'Enter snap name: ' snapname; echo; snap info $snapname"],
-							["Find snap...", "echo Find snap...; echo; read -p 'Enter one word to search: ' snapsearch; echo; snap find $snapsearch"]
+							["Find snap...", "echo Find snap...; echo; read -p 'Enter one word to search: ' snapsearch; echo; snap find $snapsearch"],
+							["Enable snap...", "echo Enable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap enable $snapname"],
+							["Disable snap...", "echo Disable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap disable $snapname"]
 						];
 						
 // here you can add/remove/hack the hold refresh time options
@@ -45,6 +53,7 @@ class SnapMenu extends PanelMenu.Button {
     _init() {
         super._init(0.0, 'Snap manager');
 
+		// make indicator
         this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         // import snap customized icon
         this.iconPath = Me.path + "/snap-symbolic.svg";
@@ -63,6 +72,12 @@ class SnapMenu extends PanelMenu.Button {
         //this.hbox.add_child(this.label);
         this.hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
         this.add_child(this.hbox);
+        
+        // remove icon color on click
+        this.iconClicked = this.connect('button-press-event', Lang.bind(this, this._removeIconColor));
+        
+        // initial available snap updates check
+        this._refreshIconColor();
 		
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
@@ -72,6 +87,7 @@ class SnapMenu extends PanelMenu.Button {
 		this.submenu1 = new PopupMenu.PopupSubMenuMenuItem('Extra actions');
 		this.menu.addMenuItem(this.submenu1);
 		menuExtraActions.forEach(this._addExtraSubmenuItem.bind(this));
+		
 		// refresh options submenu
 		this.submenu2 = new PopupMenu.PopupSubMenuMenuItem('Refresh options');
 		this.menu.addMenuItem(this.submenu2);
@@ -82,7 +98,22 @@ class SnapMenu extends PanelMenu.Button {
 		this.menu.addAction("Open Snap Store website", event => {
 			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store");
 		})
-    }
+    };
+    
+    // remove icon color
+    _removeIconColor() {
+    	this.icon.style = 'color: ;';
+    };
+    
+    // change snap icon color if available updates
+    _refreshIconColor() {
+    	this.availableRefreshLineCount = ByteArray.toString(GLib.spawn_command_line_sync("bash -c 'snap refresh --list | wc -l'")[1]).slice(0,-1);
+        if (this.availableRefreshLineCount == "0") {
+        	this.icon.style = 'color: ;';
+        } else {
+        	this.icon.style = "color: " + REFRESH_ICON_COLOR + ";";
+        };
+	};
     
     // launch bash command
     _executeAction(command) {
@@ -90,8 +121,8 @@ class SnapMenu extends PanelMenu.Button {
     			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
 			} catch(err) {
     			Main.notify("Error: unable to execute command in GNOME Terminal");
-		}
-	}
+		};
+	};
     
     // main menu items
     _addSnapMenuItem(item, index, array) {
@@ -101,7 +132,7 @@ class SnapMenu extends PanelMenu.Button {
 	    this.menu.addAction(item[0],event => {
 	    	this._executeAction(item[1])
 	    });
-	}
+	};
 	
 	// extra actions submenu items
 	_addExtraSubmenuItem(item, index, array) {
