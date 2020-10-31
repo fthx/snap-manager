@@ -21,6 +21,8 @@ const Urgency = imports.ui.messageTray.Urgency;
 
 // color of snap icon when snap updates available (default = "#E95420")
 //const REFRESH_ICON_COLOR = "#E95420";
+// timeout to check available refresh
+const REFRESH_TIMEOUT = 10;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -70,9 +72,11 @@ class SnapMenu extends PanelMenu.Button {
         // remove icon color on click
         //this.iconClicked = this.connect('button-press-event', Lang.bind(this, this._removeIconColor));
         
-        // initial available snap updates check
-        this._refreshNotification();
-		
+        // initial available snap updates check after some delay
+		GLib.timeout_add_seconds(GLib.PRIORITY_LOW, REFRESH_TIMEOUT, Lang.bind(this, function() {
+			this._refreshNotification()
+		}));
+        
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
 		
