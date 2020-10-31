@@ -21,7 +21,7 @@ const Urgency = imports.ui.messageTray.Urgency;
 
 // color of snap icon when snap updates available (default = "#E95420")
 //const REFRESH_ICON_COLOR = "#E95420";
-// timeout to check available refresh
+// timeout to check available refresh (seconds)
 const REFRESH_TIMEOUT = 10;
 
 // here you can add/remove/hack the actions
@@ -53,8 +53,8 @@ var menuRefreshOptions =	[
 						];
 
 // define local Gio snap symbolic icon					
-let iconPath = Me.path + "/snap-symbolic.svg";
-let snapIcon = Gio.icon_new_for_string(this.iconPath);
+var iconPath = Me.path + "/snap-symbolic.svg";
+var snapIcon = Gio.icon_new_for_string(this.iconPath);
 
 // snap menu
 let SnapMenu = GObject.registerClass(
@@ -98,14 +98,25 @@ class SnapMenu extends PanelMenu.Button {
 		})
     };
     
-    // remove icon color
-    //_removeIconColor() {
-    //	this.icon.style = 'color: ;';
-    //};
+    // check available refresh
+    _availableRefreshCheck() {
+    	return new Promise((resolve, reject) => {
+        	this.refreshLinesCount = GLib.spawn_command_line_sync("bash -c 'snap refresh --list | wc -l'")[1];
+        	resolve(this.refreshLinesCount);
+    	});
+	};
+	
+	// list available refresh
+    _availableRefreshList() {
+    	return new Promise((resolve, reject) => {
+        	this.refreshList = GLib.spawn_command_line_sync("bash -c 'snap refresh --list'")[1];
+        	resolve(this.refreshList);
+    	});
+	};
     
     // notify if available snap updates
-    _refreshNotification() {
-    	this.availableRefreshLineCount = ByteArray.toString(GLib.spawn_command_line_sync("bash -c 'snap refresh --list | wc -l'")[1]).slice(0,-1);
+    async _refreshNotification() {
+    	this.availableRefreshLineCount = ByteArray.toString(await this._availableRefreshCheck()).slice(0,-1);
     	// snap icon color changes if needed again in the future
     	//this.icon.style = 'color: ;';
     	//this.icon.style = "color: " + REFRESH_ICON_COLOR + ";";
@@ -116,7 +127,7 @@ class SnapMenu extends PanelMenu.Button {
         		return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
     		};
         	this.notificationTitle = "Snap refresh available";
-        	this.notificationMessage = ByteArray.toString(GLib.spawn_command_line_sync("bash -c 'snap refresh --list'")[1]);
+        	this.notificationMessage = ByteArray.toString(await this._availableRefreshList());
         	this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
         	this.notification.urgency = Urgency.CRITICAL;
         	this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));
