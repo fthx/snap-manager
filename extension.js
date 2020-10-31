@@ -16,9 +16,11 @@ const PopupMenu = imports.ui.popupMenu;
 const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 const ByteArray = imports.byteArray;
+const MessageTray = imports.ui.messageTray;
+const Urgency = imports.ui.messageTray.Urgency;
 
 // color of snap icon when snap updates available (default = "#E95420")
-const REFRESH_ICON_COLOR = "#E95420";
+//const REFRESH_ICON_COLOR = "#E95420";
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -46,8 +48,13 @@ var menuRefreshOptions =	[
 							["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 							["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 							["Cancel auto refresh delay", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
-						]
+						];
 
+// define local Gio snap symbolic icon					
+let iconPath = Me.path + "/snap-symbolic.svg";
+let snapIcon = Gio.icon_new_for_string(this.iconPath);
+
+// snap menu
 let SnapMenu = GObject.registerClass(
 class SnapMenu extends PanelMenu.Button {
     _init() {
@@ -55,29 +62,16 @@ class SnapMenu extends PanelMenu.Button {
 
 		// make indicator
         this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
-        // import snap customized icon
-        this.iconPath = Me.path + "/snap-symbolic.svg";
-		this.gioIcon = Gio.icon_new_for_string(this.iconPath);
-		this.icon = new St.Icon({ gicon: this.gioIcon, style_class: 'system-status-icon' });
-		// desaturate your customized icon if you want to
-		//this.iconEffect = new Clutter.DesaturateEffect();
-		//this.icon.add_effect(this.iconEffect);
-        // here you can add a menu label (step 1/2)
-        //this.label = new St.Label({
-        //	text: "Snaps",
-        //	y_align: Clutter.ActorAlign.CENTER,
-        //});
+		this.icon = new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
         this.hbox.add_child(this.icon);
-        // here you can add a menu label (step 2/2)
-        //this.hbox.add_child(this.label);
         this.hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
         this.add_child(this.hbox);
         
         // remove icon color on click
-        this.iconClicked = this.connect('button-press-event', Lang.bind(this, this._removeIconColor));
+        //this.iconClicked = this.connect('button-press-event', Lang.bind(this, this._removeIconColor));
         
         // initial available snap updates check
-        this._refreshIconColor();
+        this._refreshNotification();
 		
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
@@ -101,17 +95,28 @@ class SnapMenu extends PanelMenu.Button {
     };
     
     // remove icon color
-    _removeIconColor() {
-    	this.icon.style = 'color: ;';
-    };
+    //_removeIconColor() {
+    //	this.icon.style = 'color: ;';
+    //};
     
-    // change snap icon color if available updates
-    _refreshIconColor() {
+    // notify if available snap updates
+    _refreshNotification() {
     	this.availableRefreshLineCount = ByteArray.toString(GLib.spawn_command_line_sync("bash -c 'snap refresh --list | wc -l'")[1]).slice(0,-1);
-        if (this.availableRefreshLineCount == "0") {
-        	this.icon.style = 'color: ;';
-        } else {
-        	this.icon.style = "color: " + REFRESH_ICON_COLOR + ";";
+    	// snap icon color changes if needed again in the future
+    	//this.icon.style = 'color: ;';
+    	//this.icon.style = "color: " + REFRESH_ICON_COLOR + ";";
+        if (!(this.availableRefreshLineCount == "0")) {        	
+        	this.notificationSource = new MessageTray.SystemNotificationSource();
+        	Main.messageTray.add(this.notificationSource);
+    		this.notificationSource.createIcon = function() {
+        		return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
+    		};
+        	this.notificationTitle = "Snap refresh available";
+        	this.notificationMessage = ByteArray.toString(GLib.spawn_command_line_sync("bash -c 'snap refresh --list'")[1]);
+        	this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+        	this.notification.urgency = Urgency.CRITICAL;
+        	this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));
+        	this.notificationSource.showNotification(this.notification);    	
         };
 	};
     
@@ -122,6 +127,12 @@ class SnapMenu extends PanelMenu.Button {
 			} catch(err) {
     			Main.notify("Error: unable to execute command in GNOME Terminal");
 		};
+	};
+	
+	// snap refresh direct shortcut
+	_snapRefresh() {
+		this._executeAction("echo Refresh installed snaps; echo; snap refresh");
+		this.notification.destroy();
 	};
     
     // main menu items
