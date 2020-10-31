@@ -19,10 +19,13 @@ const ByteArray = imports.byteArray;
 const MessageTray = imports.ui.messageTray;
 const Urgency = imports.ui.messageTray.Urgency;
 
-// color of snap icon when snap updates available (default = "#E95420")
-//const REFRESH_ICON_COLOR = "#E95420";
-// timeout to check available refresh (seconds)
-const REFRESH_TIMEOUT = 10;
+// refresh counter extension file
+const refreshFileCounter = Me.path + "/refreshCount";
+const refreshFileList = Me.path + "/refreshList";
+
+// wait some time for network connection (s)
+const WAIT_NETWORK_TIMEOUT = 20;
+const WAIT_REFRESH_LIST = 10;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -61,7 +64,7 @@ let SnapMenu = GObject.registerClass(
 class SnapMenu extends PanelMenu.Button {
     _init() {
         super._init(0.0, 'Snap manager');
-
+        
 		// make indicator
         this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
 		this.icon = new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
@@ -69,12 +72,9 @@ class SnapMenu extends PanelMenu.Button {
         this.hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
         this.add_child(this.hbox);
         
-        // remove icon color on click
-        //this.iconClicked = this.connect('button-press-event', Lang.bind(this, this._removeIconColor));
-        
         // initial available snap updates check after some delay
-		GLib.timeout_add_seconds(GLib.PRIORITY_LOW, REFRESH_TIMEOUT, Lang.bind(this, function() {
-			this._refreshNotification()
+		GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
+    		this._refreshNotification()
 		}));
         
 		// main menu
@@ -98,41 +98,39 @@ class SnapMenu extends PanelMenu.Button {
 		})
     };
     
-    // check available refresh
-    _availableRefreshCheck() {
-    	return new Promise((resolve, reject) => {
-        	this.refreshLinesCount = GLib.spawn_command_line_sync("bash -c 'snap refresh --list | wc -l'")[1];
-        	resolve(this.refreshLinesCount);
-    	});
-	};
-	
-	// list available refresh
-    _availableRefreshList() {
-    	return new Promise((resolve, reject) => {
-        	this.refreshList = GLib.spawn_command_line_sync("bash -c 'snap refresh --list'")[1];
-        	resolve(this.refreshList);
-    	});
-	};
-    
     // notify if available snap updates
-    async _refreshNotification() {
-    	this.availableRefreshLineCount = ByteArray.toString(await this._availableRefreshCheck()).slice(0,-1);
-    	// snap icon color changes if needed again in the future
-    	//this.icon.style = 'color: ;';
-    	//this.icon.style = "color: " + REFRESH_ICON_COLOR + ";";
-        if (!(this.availableRefreshLineCount == "0")) {        	
-        	this.notificationSource = new MessageTray.SystemNotificationSource();
-        	Main.messageTray.add(this.notificationSource);
-    		this.notificationSource.createIcon = function() {
-        		return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
+    _refreshNotification() {
+    	this.refreshCounter = "0";
+    	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
+    	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
+    	GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
+			this.file = Gio.File.new_for_path(refreshFileCounter);
+			this.fileContent = this.file.load_contents(null)[1];
+			this.refreshCounter = Number(ByteArray.toString(this.fileContent).slice(0,-1)) - 1;
+			
+			this.file = Gio.File.new_for_path(refreshFileList);
+			this.fileContent = this.file.load_contents(null)[1];
+			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
+			
+			this.notificationSource = new MessageTray.SystemNotificationSource();
+			Main.messageTray.add(this.notificationSource);
+			this.notificationSource.createIcon = function() {
+				return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
+			};
+			if (this.refreshCounter == -1) {
+			   	this.notificationTitle = "No snap refresh available";
+			   	this.notificationMessage = "";
+				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+				this.notification.urgency = Urgency.NORMAL;
+			} else {
+				this.notificationTitle = this.refreshCounter + " snap refresh available";
+				this.notificationMessage = "List of available refresh:\n" + this.refreshList;
+				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+				this.notification.urgency = Urgency.CRITICAL;
+				this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));  	
     		};
-        	this.notificationTitle = "Snap refresh available";
-        	this.notificationMessage = ByteArray.toString(await this._availableRefreshList());
-        	this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
-        	this.notification.urgency = Urgency.CRITICAL;
-        	this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));
-        	this.notificationSource.showNotification(this.notification);    	
-        };
+    		this.notificationSource.showNotification(this.notification);
+    	}));
 	};
     
     // launch bash command
