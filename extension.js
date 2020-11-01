@@ -24,8 +24,8 @@ const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
 // wait some time for network connection (s)
-const WAIT_NETWORK_TIMEOUT = 2;
-const WAIT_REFRESH_LIST = 1;
+const WAIT_NETWORK_TIMEOUT = 20;
+const WAIT_REFRESH_LIST = 10;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
