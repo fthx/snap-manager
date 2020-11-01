@@ -24,14 +24,14 @@ const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
 // wait some time for network connection (s)
-const WAIT_NETWORK_TIMEOUT = 20;
-const WAIT_REFRESH_LIST = 10;
+const WAIT_NETWORK_TIMEOUT = 2;
+const WAIT_REFRESH_LIST = 1;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
 						["List installed snaps", "echo List installed snaps; echo; snap list"],
 						["List recent snap changes", "echo List recent snap changes; echo; snap changes"],
-						["List snap updates", "echo List snap updates; echo; snap refresh --list"],
+						["List available snap updates", "echo List available snap updates; echo; snap refresh --list"],
 						["Refresh installed snaps", "echo Refresh installed snaps; echo; snap refresh"],
 						["Install snap...", "echo Install snap...; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter channel (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel"],
 						["Remove snap...", "echo Remove snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap remove $snapname"]
@@ -125,15 +125,21 @@ class SnapMenu extends PanelMenu.Button {
 			   	this.notificationMessage = "";
 				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 				this.notification.urgency = Urgency.NORMAL;
-				this.notification.addAction("List recent changes", Lang.bind(this, this._snapChanges));
 			} else {
-				this.notificationTitle = this.refreshCounter + " snap refresh available";
+				if (this.refreshCounter == 1) {
+					this.s1 = "";
+					this.s2 = "s";
+				} else {
+					this.s1 = "s";
+					this.s2 = "";
+				};
+				this.notificationTitle = "Snap refresh available: " + this.refreshCounter + " snap" + this.s1 + " need" + this.s2 + " to be updated";
 				this.notificationMessage = "List of available refresh:\n" + this.refreshList;
 				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 				this.notification.urgency = Urgency.CRITICAL;
-				this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));
-				this.notification.addAction("List recent changes", Lang.bind(this, this._snapChanges));
+				this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
     		};
+    		this.notification.addAction("Recent changes", Lang.bind(this, this._snapChanges));
     		this.notificationSource.showNotification(this.notification);
     	}));
 	};
