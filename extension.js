@@ -100,7 +100,7 @@ class SnapMenu extends PanelMenu.Button {
     
     // notify if available snap updates
     _refreshNotification() {
-    	this.refreshCounter = "0";
+    	this.refreshCounter = 0;
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
     	GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
@@ -127,13 +127,10 @@ class SnapMenu extends PanelMenu.Button {
 				this.notification.urgency = Urgency.NORMAL;
 			} else {
 				if (this.refreshCounter == 1) {
-					this.s1 = "";
-					this.s2 = "s";
+					this.notificationTitle = "Snap refresh available: 1 snap needs to be updated";
 				} else {
-					this.s1 = "s";
-					this.s2 = "";
+					this.notificationTitle = "Snap refresh available: " + this.refreshCounter + " snaps need to be updated";
 				};
-				this.notificationTitle = "Snap refresh available: " + this.refreshCounter + " snap" + this.s1 + " need" + this.s2 + " to be updated";
 				this.notificationMessage = "List of available refresh:\n" + this.refreshList;
 				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 				this.notification.urgency = Urgency.CRITICAL;
