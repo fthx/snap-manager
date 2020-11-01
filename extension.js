@@ -24,8 +24,8 @@ const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
 // wait some time for network connection (s)
-const WAIT_NETWORK_TIMEOUT = 20;
-const WAIT_REFRESH_LIST = 10;
+const WAIT_NETWORK_TIMEOUT = 2;
+const WAIT_REFRESH_LIST = 1;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -40,7 +40,7 @@ var menuActions =	[
 // here you can add/remove/hack the extra actions					
 var menuExtraActions = 	[
 							["Refresh snap channel...", "echo Refresh snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter new channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
-							["Snap info...", "echo Snap info...; echo; read -p 'Enter snap name: ' snapname; echo; snap info $snapname"],
+							["Snap info...", "echo Snap info...; echo; read -p 'Enter snap name: ' snapname; echo; snap info --verbose $snapname; echo; snap connections $snapname"],
 							["Find snap...", "echo Find snap...; echo; read -p 'Enter one word to search: ' snapsearch; echo; snap find $snapsearch"],
 							["Enable snap...", "echo Enable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap enable $snapname"],
 							["Disable snap...", "echo Disable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap disable $snapname"]
@@ -104,14 +104,17 @@ class SnapMenu extends PanelMenu.Button {
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
     	GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
+			// write available refresh count
 			this.file = Gio.File.new_for_path(refreshFileCounter);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshCounter = Number(ByteArray.toString(this.fileContent).slice(0,-1)) - 1;
 			
+			// write refresh list
 			this.file = Gio.File.new_for_path(refreshFileList);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
 			
+			// create notifications
 			this.notificationSource = new MessageTray.SystemNotificationSource();
 			Main.messageTray.add(this.notificationSource);
 			this.notificationSource.createIcon = function() {
@@ -122,12 +125,14 @@ class SnapMenu extends PanelMenu.Button {
 			   	this.notificationMessage = "";
 				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 				this.notification.urgency = Urgency.NORMAL;
+				this.notification.addAction("List recent changes", Lang.bind(this, this._snapChanges));
 			} else {
 				this.notificationTitle = this.refreshCounter + " snap refresh available";
 				this.notificationMessage = "List of available refresh:\n" + this.refreshList;
 				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 				this.notification.urgency = Urgency.CRITICAL;
-				this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));  	
+				this.notification.addAction("Refresh snaps now", Lang.bind(this, this._snapRefresh));
+				this.notification.addAction("List recent changes", Lang.bind(this, this._snapChanges));
     		};
     		this.notificationSource.showNotification(this.notification);
     	}));
@@ -145,6 +150,12 @@ class SnapMenu extends PanelMenu.Button {
 	// snap refresh direct shortcut
 	_snapRefresh() {
 		this._executeAction("echo Refresh installed snaps; echo; snap refresh");
+		this.notification.destroy();
+	};
+	
+	// snap changes direct shortcut
+	_snapChanges() {
+		this._executeAction("echo List recent snap changes; echo; snap changes");
 		this.notification.destroy();
 	};
     
