@@ -23,8 +23,9 @@ const Urgency = imports.ui.messageTray.Urgency;
 const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
-// wait some time for network connection (s)
+// wait some time for network connection and refresh command output (s)
 const WAIT_NETWORK_TIMEOUT = 20;
+// wait some time for refresh command output (s)
 const WAIT_REFRESH_LIST = 10;
 
 // here you can add/remove/hack the actions
@@ -60,7 +61,7 @@ var iconPath = Me.path + "/snap-symbolic.svg";
 var snapIcon = Gio.icon_new_for_string(this.iconPath);
 
 // snap menu
-let SnapMenu = GObject.registerClass(
+var SnapMenu = GObject.registerClass(
 class SnapMenu extends PanelMenu.Button {
     _init() {
         super._init(0.0, 'Snap manager');
@@ -100,7 +101,6 @@ class SnapMenu extends PanelMenu.Button {
     
     // notify if available snap updates
     _refreshNotification() {
-    	this.refreshCounter = 0;
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
     	GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
@@ -114,33 +114,38 @@ class SnapMenu extends PanelMenu.Button {
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
 			
-			// create notifications
+			// create notification
 			this.notificationSource = new MessageTray.SystemNotificationSource();
 			Main.messageTray.add(this.notificationSource);
 			this.notificationSource.createIcon = function() {
 				return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
 			};
-			if (this.refreshCounter == -1) {
-			   	this.notificationTitle = "No snap refresh available";
-			   	this.notificationMessage = "";
-				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
-				this.notification.urgency = Urgency.NORMAL;
-			} else {
-				if (this.refreshCounter == 1) {
+			switch (this.refreshCounter) {
+				case -1:
+					this.notificationTitle = "No snap refresh available";
+				   	this.notificationMessage = "";
+					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+					this.notification.urgency = Urgency.NORMAL;
+					break;
+				case 1:
 					this.notificationTitle = "Snap refresh available: 1 snap needs to be updated";
-				} else {
+					this.notificationMessage = "List of available refresh:\n" + this.refreshList;
+					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+					this.notification.urgency = Urgency.CRITICAL;
+					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
+					break;
+				default:
 					this.notificationTitle = "Snap refresh available: " + this.refreshCounter + " snaps need to be updated";
-				};
-				this.notificationMessage = "List of available refresh:\n" + this.refreshList;
-				this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
-				this.notification.urgency = Urgency.CRITICAL;
-				this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
-    		};
+					this.notificationMessage = "List of available refresh:\n" + this.refreshList;
+					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+					this.notification.urgency = Urgency.CRITICAL;
+					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
+			};
     		this.notification.addAction("Recent changes", Lang.bind(this, this._snapChanges));
     		this.notificationSource.showNotification(this.notification);
     	}));
 	};
-    
+	
     // launch bash command
     _executeAction(command) {
     	try {
@@ -190,7 +195,7 @@ class SnapMenu extends PanelMenu.Button {
 function init() {
 }
 
-let _indicator;
+var _indicator;
 
 function enable() {
     _indicator = new SnapMenu();
