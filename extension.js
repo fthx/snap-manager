@@ -113,30 +113,38 @@ class SnapMenu extends PanelMenu.Button {
 			this.file = Gio.File.new_for_path(refreshFileList);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
+			log(this.refreshList);
+			
+			// remove previous snap manager notifications (=> don't stack them)
+			for (let source of Main.messageTray.getSources()) {
+    			if (source.title == 'snap-manager-extension') {
+    				source.destroy();
+    			}
+    		};
 			
 			// create notification
-			this.notificationSource = new MessageTray.SystemNotificationSource();
+			this.notificationSource = new MessageTray.Source('snap-manager-extension', 'dialog-information-symbolic');
 			Main.messageTray.add(this.notificationSource);
 			this.notificationSource.createIcon = function() {
 				return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
 			};
 			switch (this.refreshCounter) {
 				case -1:
-					this.notificationTitle = "No snap refresh available";
-				   	this.notificationMessage = "";
+					this.notificationTitle = "Snap Manager";
+				   	this.notificationMessage = "No snap refresh available";
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.NORMAL;
 					break;
 				case 1:
-					this.notificationTitle = "Snap refresh available: 1 snap needs to be updated";
-					this.notificationMessage = "List of available refresh:\n" + this.refreshList;
+					this.notificationTitle = "Snap Manager";
+					this.notificationMessage = "Refresh available: 1 snap needs to be updated\n\n" + this.refreshList;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
 					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
 					break;
 				default:
-					this.notificationTitle = "Snap refresh available: " + this.refreshCounter + " snaps need to be updated";
-					this.notificationMessage = "List of available refresh:\n" + this.refreshList;
+					this.notificationTitle = "Snap Manager";
+					this.notificationMessage = "Refresh available: " + this.refreshCounter + " snaps need to be updated\n\n" + this.refreshList;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
 					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
