@@ -126,7 +126,6 @@ class SnapMenu extends PanelMenu.Button {
 			this.file = Gio.File.new_for_path(refreshFileList);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
-			log(this.refreshList);
 			
 			// remove previous snap manager notifications (=> don't stack them)
 			for (let source of Main.messageTray.getSources()) {
