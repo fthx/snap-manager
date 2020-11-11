@@ -23,6 +23,8 @@ const Urgency = imports.ui.messageTray.Urgency;
 const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
+// refresh nofitication after session startup
+const REFRESH_NOTIFICATION = true;
 // wait some time for network connection and refresh command output (s)
 const WAIT_NETWORK_TIMEOUT = 20;
 // wait some time for refresh command output (s)
@@ -82,9 +84,11 @@ class SnapMenu extends PanelMenu.Button {
         this.add_child(this.hbox);
         
         // initial available snap updates check after some delay
-		GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
-    		this._refreshNotification()
-		}));
+        if (REFRESH_NOTIFICATION) {
+			GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
+				this._refreshNotification()
+			}))
+		};
         
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
