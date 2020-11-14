@@ -24,7 +24,7 @@ const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
 // refresh nofitication after session startup
-const REFRESH_NOTIFICATION = true;
+const REFRESH_NOTIFICATION = false;
 // wait some time for network connection and refresh command output (s)
 const WAIT_NETWORK_TIMEOUT = 20;
 // wait some time for refresh command output (s)
@@ -68,7 +68,7 @@ var menuRefreshOptions = [
 
 // define local Gio snap symbolic icon					
 var iconPath = Me.path + "/snap-symbolic.svg";
-var snapIcon = Gio.icon_new_for_string(this.iconPath);
+var snapIcon = Gio.icon_new_for_string(iconPath);
 
 // snap menu
 var SnapMenu = GObject.registerClass(
@@ -85,7 +85,7 @@ class SnapMenu extends PanelMenu.Button {
         
         // initial available snap updates check after some delay
         if (REFRESH_NOTIFICATION) {
-			GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
+			this.refreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
 				this._refreshNotification()
 			}))
 		};
@@ -112,15 +112,15 @@ class SnapMenu extends PanelMenu.Button {
 		// open Snap Store in default browser
 		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 		this.menu.addAction("Open Snap Store website", event => {
-			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store");
+			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
 		})
-    };
+    }
     
     // notify if available snap updates
     _refreshNotification() {
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
-    	GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
+    	this.waitRefreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
 			// write available refresh count
 			this.file = Gio.File.new_for_path(refreshFileCounter);
 			this.fileContent = this.file.load_contents(null)[1];
@@ -134,7 +134,7 @@ class SnapMenu extends PanelMenu.Button {
 			// remove previous snap manager notifications (=> don't stack them)
 			for (let source of Main.messageTray.getSources()) {
     			if (source.title == 'snap-manager-extension') {
-    				source.destroy();
+    				source.destroy()
     			}
     		};
 			
@@ -166,54 +166,54 @@ class SnapMenu extends PanelMenu.Button {
 					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
 			};
     		this.notification.addAction("Recent changes", Lang.bind(this, this._snapChanges));
-    		this.notificationSource.showNotification(this.notification);
+    		this.notificationSource.showNotification(this.notification)
     	}));
 	};
 	
     // launch bash command
     _executeAction(command) {
     	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
+    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"")
 			} catch(err) {
-    			Main.notify("Error: unable to execute command in GNOME Terminal");
-		};
-	};
+    			Main.notify("Error: unable to execute command in GNOME Terminal")
+		}
+	}
 	
 	// snap refresh direct shortcut
 	_snapRefresh() {
 		this._executeAction("echo Refresh installed snaps; echo; snap refresh");
-		this.notification.destroy();
-	};
+		this.notification.destroy()
+	}
 	
 	// snap changes direct shortcut
 	_snapChanges() {
 		this._executeAction("echo List recent snap changes; echo; snap changes");
-		this.notification.destroy();
+		this.notification.destroy()
 	};
     
     // main menu items
     _addSnapMenuItem(item, index, array) {
     	if (index == 3) {
-	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
 	    };
 	    this.menu.addAction(item[0],event => {
 	    	this._executeAction(item[1])
 	    });
-	};
+	}
 	
 	// snap options submenu items
 	_addOptionsSubmenuItem(item, index, array) {
 	    this.submenu1.menu.addAction(item[0],event => {
 	    	this._executeAction(item[1])
 	    });
-	};
+	}
 	
 	// snap connections submenu items
 	_addConnectSubmenuItem(item, index, array) {
 	    this.submenu2.menu.addAction(item[0],event => {
 	    	this._executeAction(item[1])
 	    });
-	};
+	}
 	
 	// refresh options submenu items
 	_addRefreshSubmenuItem(item, index, array) {
@@ -221,6 +221,16 @@ class SnapMenu extends PanelMenu.Button {
 	    	this._executeAction(item[1])
 	    });
 	}
+	
+	destroy() {
+		if (this.refreshTimeout) {
+			GLib.source_remove(this.refreshTimeout)
+		};
+		if (this.waitRefreshTimeout) {
+			GLib.source_remove(this.waitRefreshTimeout)
+		};
+		super.destroy()
+	}	
 });
 
 function init() {
