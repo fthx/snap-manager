@@ -52,7 +52,7 @@ var menuSnapOptions = [
 // here you can add/remove/hack the snap connections					
 var menuSnapConnections = [
 	["List available interfaces", "echo List available interfaces; echo; snap interface"],
-	["List snap connections...", "echo List snap connections...; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname"],
+	["List snap connections...", "echo List snap connections...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname"],
 	["Connect snap...", "echo Connect snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname; echo; read -p 'Enter interface to connect: ' snapconnection; echo; snap connect $snapname:$snapconnection"],
 	["Disconnect snap...", "echo Disconnect snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname; echo; read -p 'Enter interface to disconnect: ' snapconnection; echo; snap disconnect $snapname:$snapconnection"],
 ];
@@ -109,8 +109,13 @@ class SnapMenu extends PanelMenu.Button {
 		this.menu.addMenuItem(this.submenu3);
 		menuRefreshOptions.forEach(this._addRefreshSubmenuItem.bind(this));
 		
-		// open Snap Store in default browser
+		// run Snap Store snap app
 		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+		this.menu.addAction("Run Snap Store application", event => {
+			Util.trySpawnCommandLine("snap-store")
+		});
+		
+		// open Snap Store in default browser
 		this.menu.addAction("Open Snap Store website", event => {
 			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
 		})
