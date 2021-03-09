@@ -5,7 +5,7 @@
 	License: GPLv3  */
 	
 
-const { Clutter, Gio, GObject, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Main = imports.ui.main;
@@ -13,21 +13,21 @@ const Util = imports.misc.util;
 const Me = ExtensionUtils.getCurrentExtension();
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
-const GLib = imports.gi.GLib;
 const ByteArray = imports.byteArray;
 const MessageTray = imports.ui.messageTray;
 const Urgency = imports.ui.messageTray.Urgency;
 
 // refresh counter extension file
-const refreshFileCounter = Me.path + "/refreshCount";
-const refreshFileList = Me.path + "/refreshList";
+var refreshFileCounter = Me.path + "/refreshCount";
+var refreshFileList = Me.path + "/refreshList";
+var refreshFileTime = Me.path + "/refreshTime";
 
 // refresh notification after session startup
-const REFRESH_NOTIFICATION = true;
+var REFRESH_NOTIFICATION = true;
 // wait some time for network connection and refresh command output (s)
-const WAIT_NETWORK_TIMEOUT = 20;
+var WAIT_NETWORK_TIMEOUT = 20;
 // wait some time for refresh command output (s)
-const WAIT_REFRESH_LIST = 10;
+var WAIT_REFRESH_LIST = 10;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
@@ -62,6 +62,7 @@ var menuRefreshOptions = [
 	["Hold auto refresh for one hour", "echo Hold auto refresh for one hour; echo; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
+	["Hold auto refresh for one month", "echo Hold auto refresh for one month; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 month'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Cancel auto refresh delay", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
 ];
 
@@ -113,7 +114,6 @@ class SnapMenu extends PanelMenu.Button {
 		});
 		
 		// open Snap Store in default browser
-		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 		this.menu.addAction("Open Snap Store website", _ => {
 			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
 		})
@@ -123,13 +123,25 @@ class SnapMenu extends PanelMenu.Button {
     _refreshNotification() {
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
+		GLib.spawn_command_line_async("bash -c 'snap refresh --time | grep hold > " + refreshFileTime + "'");
+
     	this.waitRefreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, () => {
-			// write available refresh count
+			// hold updates
+			this.file = Gio.File.new_for_path(refreshFileTime);
+			this.fileContent = this.file.load_contents(null)[1];
+			this.refreshTime = ByteArray.toString(this.fileContent).slice(0,-1).split('hold:')[1];
+			if (this.refreshTime) {
+				this.refreshTime = "Auto updates OFF\nReactivation" + this.refreshTime;
+			} else {
+				this.refreshTime = "Auto updates ON";
+			}
+
+			// available refresh count
 			this.file = Gio.File.new_for_path(refreshFileCounter);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshCounter = Number(ByteArray.toString(this.fileContent).slice(0,-1)) - 1;
 			
-			// write refresh list
+			// refresh list
 			this.file = Gio.File.new_for_path(refreshFileList);
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1).split('\n').map(x => x.split(' ', 1));
@@ -151,23 +163,21 @@ class SnapMenu extends PanelMenu.Button {
 			this.notificationSource.createIcon = function() {
 				return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
 			};
+			this.notificationTitle = "Snap Manager";
 			switch (this.refreshCounter) {
 				case -1:
-					this.notificationTitle = "Snap Manager";
-				   	this.notificationMessage = "No snap refresh available";
+				   	this.notificationMessage = "No snap refresh available\n\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
-					this.notification.urgency = Urgency.NORMAL;
+					this.notification.urgency = Urgency.CRITICAL;
 					break;
 				case 1:
-					this.notificationTitle = "Snap Manager";
-					this.notificationMessage = "Refresh available: 1 snap needs to be updated\n\n" + this.refreshNames;
+					this.notificationMessage = "Refresh available: 1 snap needs to be updated\n\n" + this.refreshNames + "\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
 					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
 					break;
 				default:
-					this.notificationTitle = "Snap Manager";
-					this.notificationMessage = "Refresh available: " + this.refreshCounter + " snaps need to be updated\n\n" + this.refreshNames;
+					this.notificationMessage = "Refresh available: " + this.refreshCounter + " snaps need to be updated\n\n" + this.refreshNames + "\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
 					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
@@ -229,7 +239,7 @@ class SnapMenu extends PanelMenu.Button {
 	    });
 	}
 	
-	destroy() {
+	_destroy() {
 		if (this.refreshTimeout) {
 			GLib.source_remove(this.refreshTimeout)
 		};
@@ -240,16 +250,20 @@ class SnapMenu extends PanelMenu.Button {
 	}	
 });
 
+class Extension {
+    constructor() {
+    }
+    
+    enable() {
+    	this.snap_indicator = new SnapMenu();
+    	Main.panel.addToStatusArea('snap-menu', this.snap_indicator);
+    }
+
+    disable() {
+    	this.snap_indicator._destroy();
+    }
+}
+
 function init() {
-}
-
-var _indicator;
-
-function enable() {
-    _indicator = new SnapMenu();
-    Main.panel.addToStatusArea('snap-menu', _indicator);
-}
-
-function disable() {
-    _indicator.destroy();
+	return new Extension();
 }
