@@ -1,8 +1,8 @@
 /*	Snap Manager
 	Unofficial snap manager for usual snap tasks
 	GNOME Shell extension
-	(c) Francois Thirioux 2020
-	License: GPLv3 */
+	(c) Francois Thirioux 2021
+	License: GPLv3  */
 	
 
 const { Clutter, Gio, GObject, Shell, St } = imports.gi;
@@ -14,7 +14,6 @@ const Me = ExtensionUtils.getCurrentExtension();
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
 const ByteArray = imports.byteArray;
 const MessageTray = imports.ui.messageTray;
 const Urgency = imports.ui.messageTray.Urgency;
@@ -23,8 +22,8 @@ const Urgency = imports.ui.messageTray.Urgency;
 const refreshFileCounter = Me.path + "/refreshCount";
 const refreshFileList = Me.path + "/refreshList";
 
-// refresh nofitication after session startup
-const REFRESH_NOTIFICATION = false;
+// refresh notification after session startup
+const REFRESH_NOTIFICATION = true;
 // wait some time for network connection and refresh command output (s)
 const WAIT_NETWORK_TIMEOUT = 20;
 // wait some time for refresh command output (s)
@@ -77,17 +76,15 @@ class SnapMenu extends PanelMenu.Button {
         super._init(0.0, 'Snap manager');
         
 		// make indicator
-        this.hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
-		this.icon = new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
+        this.hbox = new St.BoxLayout({style_class: 'panel-status-menu-box'});
+		this.icon = new St.Icon({gicon: snapIcon, style_class: 'system-status-icon'});
         this.hbox.add_child(this.icon);
         this.hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
         this.add_child(this.hbox);
         
         // initial available snap updates check after some delay
         if (REFRESH_NOTIFICATION) {
-			this.refreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, Lang.bind(this, function() {
-				this._refreshNotification()
-			}))
+			this.refreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, this._refreshNotification.bind(this))
 		};
         
 		// main menu
@@ -111,12 +108,13 @@ class SnapMenu extends PanelMenu.Button {
 		
 		// run Snap Store snap app
 		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-		this.menu.addAction("Run Snap Store application", event => {
+		this.menu.addAction("Run Snap Store application", _ => {
 			Util.trySpawnCommandLine("snap-store")
 		});
 		
 		// open Snap Store in default browser
-		this.menu.addAction("Open Snap Store website", event => {
+		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+		this.menu.addAction("Open Snap Store website", _ => {
 			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
 		})
     }
@@ -125,7 +123,7 @@ class SnapMenu extends PanelMenu.Button {
     _refreshNotification() {
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
-    	this.waitRefreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, Lang.bind(this, function() {
+    	this.waitRefreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, () => {
 			// write available refresh count
 			this.file = Gio.File.new_for_path(refreshFileCounter);
 			this.fileContent = this.file.load_contents(null)[1];
@@ -134,7 +132,11 @@ class SnapMenu extends PanelMenu.Button {
 			// write refresh list
 			this.file = Gio.File.new_for_path(refreshFileList);
 			this.fileContent = this.file.load_contents(null)[1];
-			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1);
+			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1).split('\n').map(x => x.split(' ', 1));
+			this.refreshNames = "";
+			for (let k = 1; k < this.refreshList.length; k++) {
+				this.refreshNames += this.refreshList[k][0]+"\n";
+			}
 			
 			// remove previous snap manager notifications (=> don't stack them)
 			for (let source of Main.messageTray.getSources()) {
@@ -158,21 +160,21 @@ class SnapMenu extends PanelMenu.Button {
 					break;
 				case 1:
 					this.notificationTitle = "Snap Manager";
-					this.notificationMessage = "Refresh available: 1 snap needs to be updated\n\n" + this.refreshList;
+					this.notificationMessage = "Refresh available: 1 snap needs to be updated\n\n" + this.refreshNames;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
-					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
+					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
 					break;
 				default:
 					this.notificationTitle = "Snap Manager";
-					this.notificationMessage = "Refresh available: " + this.refreshCounter + " snaps need to be updated\n\n" + this.refreshList;
+					this.notificationMessage = "Refresh available: " + this.refreshCounter + " snaps need to be updated\n\n" + this.refreshNames;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.urgency = Urgency.CRITICAL;
-					this.notification.addAction("Refresh now", Lang.bind(this, this._snapRefresh));
+					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
 			};
-    		this.notification.addAction("Recent changes", Lang.bind(this, this._snapChanges));
+    		this.notification.addAction("Recent changes", this._snapChanges.bind(this));
     		this.notificationSource.showNotification(this.notification)
-    	}));
+    	});
 	};
 	
     // launch bash command
@@ -201,28 +203,28 @@ class SnapMenu extends PanelMenu.Button {
     	if (index == 3) {
 	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
 	    };
-	    this.menu.addAction(item[0],event => {
+	    this.menu.addAction(item[0],_ => {
 	    	this._executeAction(item[1])
 	    });
 	}
 	
 	// snap options submenu items
 	_addOptionsSubmenuItem(item, index, array) {
-	    this.submenu1.menu.addAction(item[0],event => {
+	    this.submenu1.menu.addAction(item[0], _ => {
 	    	this._executeAction(item[1])
 	    });
 	}
 	
 	// snap connections submenu items
 	_addConnectSubmenuItem(item, index, array) {
-	    this.submenu2.menu.addAction(item[0],event => {
+	    this.submenu2.menu.addAction(item[0], _ => {
 	    	this._executeAction(item[1])
 	    });
 	}
 	
 	// refresh options submenu items
 	_addRefreshSubmenuItem(item, index, array) {
-	    this.submenu3.menu.addAction(item[0],event => {
+	    this.submenu3.menu.addAction(item[0], _ => {
 	    	this._executeAction(item[1])
 	    });
 	}
