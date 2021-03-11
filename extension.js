@@ -21,11 +21,12 @@ const Urgency = imports.ui.messageTray.Urgency;
 var refreshFileCounter = Me.path + "/refreshCount";
 var refreshFileList = Me.path + "/refreshList";
 var refreshFileTime = Me.path + "/refreshTime";
+var refreshFileNext = Me.path + "/refreshNext";
 
 // refresh notification after session startup
 var REFRESH_NOTIFICATION = true;
 // wait some time for network connection and refresh command output (s)
-var WAIT_NETWORK_TIMEOUT = 20;
+var WAIT_NETWORK_TIMEOUT = 60;
 // wait some time for refresh command output (s)
 var WAIT_REFRESH_LIST = 10;
 
@@ -63,7 +64,7 @@ var menuRefreshOptions = [
 	["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one month", "echo Hold auto refresh for one month; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 month'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
-	["Cancel auto refresh delay", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
+	["Cancel hold auto refresh", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
 ];
 
 // define local Gio snap symbolic icon					
@@ -124,6 +125,7 @@ class SnapMenu extends PanelMenu.Button {
     	GLib.spawn_command_line_async("bash -c 'refreshcount=$(snap refresh --list | wc -l); echo $refreshcount > " + refreshFileCounter + "'");
     	GLib.spawn_command_line_async("bash -c 'snap refresh --list > " + refreshFileList + "'");
 		GLib.spawn_command_line_async("bash -c 'snap refresh --time | grep hold > " + refreshFileTime + "'");
+		GLib.spawn_command_line_async("bash -c 'snap refresh --time | grep next > " + refreshFileNext + "'");
 
     	this.waitRefreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_REFRESH_LIST, () => {
 			// hold updates
@@ -131,9 +133,13 @@ class SnapMenu extends PanelMenu.Button {
 			this.fileContent = this.file.load_contents(null)[1];
 			this.refreshTime = ByteArray.toString(this.fileContent).slice(0,-1).split('hold:')[1];
 			if (this.refreshTime) {
+				this.refreshTime = this.refreshTime.split(',')[0]
 				this.refreshTime = "Auto updates disabled, reactivation" + this.refreshTime;
 			} else {
-				this.refreshTime = "Auto updates enabled";
+				this.file = Gio.File.new_for_path(refreshFileNext);
+				this.fileContent = this.file.load_contents(null)[1];
+				this.refreshNext = ByteArray.toString(this.fileContent).slice(0,-1).split('next:')[1].split(',')[0];
+				this.refreshTime = "Auto updates enabled, next" + this.refreshNext;
 			}
 
 			// available refresh count
