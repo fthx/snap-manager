@@ -23,7 +23,7 @@ var refreshFileList = Me.path + "/refreshList";
 var refreshFileTime = Me.path + "/refreshTime";
 var refreshFileNext = Me.path + "/refreshNext";
 
-// refresh notification after session startup
+// refresh notification after session start-up
 var REFRESH_NOTIFICATION = true;
 // wait some time for network connection and refresh command output (s)
 var WAIT_NETWORK_TIMEOUT = 60;
@@ -86,8 +86,10 @@ class SnapMenu extends PanelMenu.Button {
         
         // initial available snap updates check after some delay
         if (REFRESH_NOTIFICATION) {
-			this.refreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, this._refreshNotification.bind(this))
-		};
+			Main.layoutManager.connect('startup-complete', () => {
+				this.refreshTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, WAIT_NETWORK_TIMEOUT, this._refreshNotification.bind(this));
+			});
+		}
         
 		// main menu
 		menuActions.forEach(this._addSnapMenuItem.bind(this));
@@ -117,7 +119,7 @@ class SnapMenu extends PanelMenu.Button {
 		// open Snap Store in default browser
 		this.menu.addAction("Open Snap Store website", _ => {
 			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
-		})
+		});
     }
     
     // notify if available snap updates
@@ -153,23 +155,23 @@ class SnapMenu extends PanelMenu.Button {
 			this.refreshList = ByteArray.toString(this.fileContent).slice(0,-1).split('\n').map(x => x.split(' ', 1));
 			this.refreshNames = "";
 			for (let k = 1; k < this.refreshList.length; k++) {
-				this.refreshNames += this.refreshList[k][0]+", ";
+				this.refreshNames += this.refreshList[k][0]+" ; ";
 			}
-			this.refreshNames = this.refreshNames.slice(0, -2);
+			this.refreshNames = this.refreshNames.slice(0, -3);
 			
 			// remove previous snap manager notifications (=> don't stack them)
 			for (let source of Main.messageTray.getSources()) {
     			if (source.title == 'snap-manager-extension') {
     				source.destroy()
     			}
-    		};
+    		}
 			
 			// create notification
 			this.notificationSource = new MessageTray.Source('snap-manager-extension', 'dialog-information-symbolic');
 			Main.messageTray.add(this.notificationSource);
 			this.notificationSource.createIcon = function() {
 				return new St.Icon({ gicon: snapIcon, style_class: 'system-status-icon' });
-			};
+			}
 			this.notificationTitle = "Snap Manager";
 			switch (this.refreshCounter) {
 				case -1:
@@ -185,7 +187,7 @@ class SnapMenu extends PanelMenu.Button {
 					this.notificationMessage = "Refresh available, " + this.refreshCounter + " snaps need to be updated:\n" + this.refreshNames + "\n\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
-			};
+			}
 			this.notification.urgency = Urgency.CRITICAL;
     		this.notification.addAction("Recent changes", this._snapChanges.bind(this));
     		this.notificationSource.showNotification(this.notification)
@@ -217,7 +219,7 @@ class SnapMenu extends PanelMenu.Button {
     _addSnapMenuItem(item, index, array) {
     	if (index == 3) {
 	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
-	    };
+	    }
 	    this.menu.addAction(item[0],_ => {
 	    	this._executeAction(item[1])
 	    });
@@ -247,10 +249,10 @@ class SnapMenu extends PanelMenu.Button {
 	_destroy() {
 		if (this.refreshTimeout) {
 			GLib.source_remove(this.refreshTimeout)
-		};
+		}
 		if (this.waitRefreshTimeout) {
 			GLib.source_remove(this.waitRefreshTimeout)
-		};
+		}
 		super.destroy()
 	}	
 });
@@ -260,7 +262,7 @@ class Extension {
     }
     
     enable() {
-    	this.snap_indicator = new SnapMenu();
+		this.snap_indicator = new SnapMenu();
     	Main.panel.addToStatusArea('snap-menu', this.snap_indicator);
     }
 
