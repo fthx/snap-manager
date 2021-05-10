@@ -159,13 +159,6 @@ class SnapMenu extends PanelMenu.Button {
 			}
 			this.refreshNames = this.refreshNames.slice(0, -3);
 			
-			// remove previous snap manager notifications (=> don't stack them)
-			for (let source of Main.messageTray.getSources()) {
-    			if (source.title == 'snap-manager-extension') {
-    				source.destroy()
-    			}
-    		}
-			
 			// create notification
 			this.notificationSource = new MessageTray.Source('snap-manager-extension', 'dialog-information-symbolic');
 			Main.messageTray.add(this.notificationSource);
