@@ -32,13 +32,13 @@ var WAIT_REFRESH_LIST = 10;
 
 // here you can add/remove/hack the actions
 var menuActions =	[	
-						["List installed snaps", "echo List installed snaps; echo; snap list"],
-						["List recent snap changes", "echo List recent snap changes; echo; snap changes"],
-						["List available snap refresh", "echo List available snap refresh; echo; snap refresh --list"],
-						["Refresh installed snaps", "echo Refresh installed snaps; echo; snap refresh"],
-						["Install snap...", "echo Install snap...; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter channel (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel"],
-						["Remove snap...", "echo Remove snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap remove $snapname"]
-					];
+	["List installed snaps", "echo List installed snaps; echo; snap list"],
+	["List recent snap changes", "echo List recent snap changes; echo; snap changes"],
+	["List available snap refresh", "echo List available snap refresh; echo; snap refresh --list"],
+	["Refresh installed snaps", "echo Refresh installed snaps; echo; snap refresh"],
+	["Install snap...", "echo Install snap...; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter channel (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel"],
+	["Remove snap...", "echo Remove snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap remove $snapname"],
+];
 
 // here you can add/remove/hack the snap options					
 var menuSnapOptions = [
@@ -46,7 +46,7 @@ var menuSnapOptions = [
 	["Refresh snap channel...", "echo Refresh snap channel...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available channels:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p 'Enter new channel: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel"],
 	["Revert snap refresh...", "echo Revert snap refresh...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap revert $snapname"],
 	["Enable snap...", "echo Enable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap enable $snapname"],
-	["Disable snap...", "echo Disable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap disable $snapname"]							
+	["Disable snap...", "echo Disable snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; snap disable $snapname"],						
 ];
 						
 // here you can add/remove/hack the snap connections					
@@ -64,7 +64,7 @@ var menuRefreshOptions = [
 	["Hold auto refresh for one day", "echo Hold auto refresh for one day; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one week", "echo Hold auto refresh for one week; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
 	["Hold auto refresh for one month", "echo Hold auto refresh for one month; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 month'); echo; echo Refresh schedule; echo; snap refresh --time | grep hold"],
-	["Cancel hold auto refresh", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"]
+	["Cancel hold auto refresh", "echo Cancel auto refresh delay; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo Refresh schedule; echo; snap refresh --time"],
 ];
 
 // define local Gio snap symbolic icon					
@@ -113,12 +113,12 @@ class SnapMenu extends PanelMenu.Button {
 		// run Snap Store snap app
 		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 		this.menu.addAction("Run Snap Store application", _ => {
-			Util.trySpawnCommandLine("snap-store")
+			Util.trySpawnCommandLine("snap-store");
 		});
 		
 		// open Snap Store in default browser
 		this.menu.addAction("Open Snap Store website", _ => {
-			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store")
+			Util.trySpawnCommandLine("xdg-open https://snapcraft.io/store");
 		});
     }
     
@@ -183,38 +183,39 @@ class SnapMenu extends PanelMenu.Button {
 			}
 			this.notification.urgency = Urgency.CRITICAL;
     		this.notification.addAction("Recent changes", this._snapChanges.bind(this));
-    		this.notificationSource.showNotification(this.notification)
+    		this.notificationSource.showNotification(this.notification);
     	});
 	};
 	
     // launch bash command
     _executeAction(command) {
     	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"")
-			} catch(err) {
-    			Main.notify("Error: unable to execute command in GNOME Terminal")
+			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"");
+		} catch(err) {
+			Main.notify("Error: unable to execute command in GNOME Terminal");
 		}
 	}
 	
 	// snap refresh direct shortcut
 	_snapRefresh() {
 		this._executeAction("echo Refresh installed snaps; echo; snap refresh");
-		this.notification.destroy()
+		this.notification.destroy();
 	}
 	
 	// snap changes direct shortcut
 	_snapChanges() {
 		this._executeAction("echo List recent snap changes; echo; snap changes");
-		this.notification.destroy()
+		this.notification.destroy();
 	};
     
     // main menu items
     _addSnapMenuItem(item, index, array) {
     	if (index == 3) {
-	    		this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
+			this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 	    }
+
 	    this.menu.addAction(item[0],_ => {
-	    	this._executeAction(item[1])
+	    	this._executeAction(item[1]);
 	    });
 	}
 	
@@ -241,19 +242,16 @@ class SnapMenu extends PanelMenu.Button {
 	
 	_destroy() {
 		if (this.refreshTimeout) {
-			GLib.source_remove(this.refreshTimeout)
+			GLib.source_remove(this.refreshTimeout);
 		}
 		if (this.waitRefreshTimeout) {
-			GLib.source_remove(this.waitRefreshTimeout)
+			GLib.source_remove(this.waitRefreshTimeout);
 		}
-		super.destroy()
+		super.destroy();
 	}	
 });
 
 class Extension {
-    constructor() {
-    }
-    
     enable() {
 		this.snap_indicator = new SnapMenu();
     	Main.panel.addToStatusArea('snap-menu', this.snap_indicator);
