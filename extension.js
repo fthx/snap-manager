@@ -35,43 +35,6 @@ var WAIT_NETWORK_TIMEOUT = 60;
 // wait some time for refresh command output (s)
 var WAIT_REFRESH_LIST = 10;
 
-// here you can add/remove/hack the actions
-var menuActions = [	
-	[_("List installed snaps"), `echo ${_('List installed snaps')}; echo; snap list`],
-	[_("List recent snap changes"), `echo ${_('List recent snap changes')}; echo; snap changes`],
-	[_("List available snap refresh"), `echo ${_('List available snap refresh')}; echo; snap refresh --list`],
-	[_("Refresh installed snaps"), `echo ${_('Refresh installed snaps')}; echo; snap refresh`],
-	[_("Install snap..."), `echo ${_('Install snap...')}); echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available channels')}:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p '${_('Enter channel')} (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel`],
-	[_("Remove snap..."), `echo ${_('Remove snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap remove $snapname`],
-];
-
-// here you can add/remove/hack the snap options					
-var menuSnapOptions = [
-	[_("Snap info..."), `echo ${_('Snap info...')}; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap info --verbose $snapname`],
-	[_("Refresh snap channel..."), `echo ${_('Refresh snap channel')}...; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available channels')}:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p '${_('Enter new channel')}: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel`],
-	[_("Revert snap refresh..."), `echo ${_('Revert snap refresh...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap revert $snapname`],
-	[_("Enable snap..."), `echo ${_('Enable snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap enable $snapname`],
-	[_("Disable snap..."), `echo ${_('Disable snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap disable $snapname`],						
-];
-						
-// here you can add/remove/hack the snap connections					
-var menuSnapConnections = [
-	[_("List available interfaces"), "echo List available interfaces; echo; snap interface"],
-	[_("List snap connections..."), "echo List snap connections...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname"],
-	[_("Connect snap..."), "echo Connect snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname; echo; read -p 'Enter interface to connect: ' snapconnection; echo; snap connect $snapname:$snapconnection"],
-	[_("Disconnect snap..."), "echo Disconnect snap...; echo; snap list; echo; read -p 'Enter snap name: ' snapname; echo; echo Available connections:; snap connections $snapname; echo; read -p 'Enter interface to disconnect: ' snapconnection; echo; snap disconnect $snapname:$snapconnection"],
-];
-						
-// here you can add/remove/hack the hold refresh time options
-var menuRefreshOptions = [
-	[_("Refresh schedule"), `echo ${_('Refresh schedule')}; echo; snap refresh --time`],
-	[_("Hold auto refresh for one hour"), `echo ${_('Hold auto refresh for one hour')}; echo; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`],
-	[_("Hold auto refresh for one day"), `echo ${_('Hold auto refresh for one day')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`],
-	[_("Hold auto refresh for one week"), `echo ${_('Hold auto refresh for one week')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`],
-	[_("Hold auto refresh for one month"), `echo ${_('Hold auto refresh for one month')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 month'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`],
-	[_("Cancel hold auto refresh"), `echo ${_('Cancel auto refresh delay')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time`],
-];
-
 // define local Gio snap symbolic icon					
 var iconPath = Me.path + "/snap-symbolic.svg";
 var snapIcon = Gio.icon_new_for_string(iconPath);
@@ -96,27 +59,56 @@ var SnapMenu = GObject.registerClass(
 				});
 			}
 			
+			this._buildMenu();
+		}
+
+		_buildMenu() {
 			// main menu
-			menuActions.forEach(this._addSnapMenuItem.bind(this));
-			
-			// snap configuration submenu
+			this.menu.addAction(_("List installed snaps"), () => this._executeAction(`echo ${_('List installed snaps')}; echo; snap list`));
+			this.menu.addAction(_("List recent snap changes"), () => this._executeAction(`echo ${_('List recent snap changes')}; echo; snap changes`));
+			this.menu.addAction(_("List available snap refresh"), () => this._executeAction(`echo ${_('List available snap refresh')}; echo; snap refresh --list`));
+
 			this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+			this.menu.addAction(_("Refresh installed snaps"), () => this._executeAction(`echo ${_('Refresh installed snaps')}; echo; snap refresh`));
+			this.menu.addAction(_("Install snap..."), () => this._executeAction(`echo ${_('Install snap...')}; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo '${_('Available channels')}:'; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p '${_('Enter channel')} (void=default): ' snapchannel; echo; snap install $snapname --channel=$snapchannel`));
+			this.menu.addAction(_("Remove snap..."), () => this._executeAction(`echo ${_('Remove snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap remove $snapname`));
+			
+			this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+			// snap configuration submenu
 			this.submenu1 = new PopupMenu.PopupSubMenuMenuItem(_('Snap options'));
 			this.menu.addMenuItem(this.submenu1);
-			menuSnapOptions.forEach(this._addOptionsSubmenuItem.bind(this));
 			
+			this.submenu1.menu.addAction(_("Snap info..."), () => this._executeAction(`echo ${_('Snap info...')}; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap info --verbose $snapname`));
+			this.submenu1.menu.addAction(_("Refresh snap channel..."), () => this._executeAction(`echo ${_('Refresh snap channel')}...; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available channels')}:; snap info $snapname | awk '/channels:/{y=1;next}y'; echo; read -p '${_('Enter new channel')}: ' snapchannel; echo; snap refresh $snapname --channel=$snapchannel`));
+			this.submenu1.menu.addAction(_("Revert snap refresh..."), () => this._executeAction(`echo ${_('Revert snap refresh...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap revert $snapname`));
+			this.submenu1.menu.addAction(_("Enable snap..."), () => this._executeAction(`echo ${_('Enable snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap enable $snapname`));
+			this.submenu1.menu.addAction(_("Disable snap..."), () => this._executeAction(`echo ${_('Disable snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; snap disable $snapname`));
+
 			// snap connections submenu
 			this.submenu2 = new PopupMenu.PopupSubMenuMenuItem(_('Snap connections'));
 			this.menu.addMenuItem(this.submenu2);
-			menuSnapConnections.forEach(this._addConnectSubmenuItem.bind(this));
-			
+
+			this.submenu2.menu.addAction(_("List available interfaces"), () => this._executeAction(`echo ${_('List available interfaces')}; echo; snap interface`));
+			this.submenu2.menu.addAction(_("List snap connections..."), () => this._executeAction(`echo ${_('List snap connections...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available connections')}:; snap connections $snapname`));
+			this.submenu2.menu.addAction(_("Connect snap..."), () => this._executeAction(`echo ${_('Connect snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available connections')}:; snap connections $snapname; echo; read -p '${_('Enter interface to connect')}: ' snapconnection; echo; snap connect $snapname:$snapconnection`));
+			this.submenu2.menu.addAction(_("Disconnect snap..."), () => this._executeAction(`echo ${_('Disconnect snap...')}; echo; snap list; echo; read -p '${_('Enter snap name')}: ' snapname; echo; echo ${_('Available connections')}:; snap connections $snapname; echo; read -p '${_('Enter interface to disconnect')}: ' snapconnection; echo; snap disconnect $snapname:$snapconnection`));
+
 			// refresh options submenu
 			this.submenu3 = new PopupMenu.PopupSubMenuMenuItem(_('Refresh options'));
 			this.menu.addMenuItem(this.submenu3);
-			menuRefreshOptions.forEach(this._addRefreshSubmenuItem.bind(this));
+
+			this.submenu3.menu.addAction(_("Refresh schedule"), () => this._executeAction(`echo ${_('Refresh schedule')}; echo; snap refresh --time`));
+			this.submenu3.menu.addAction(_("Hold auto refresh for one hour"), () => this._executeAction(`echo ${_('Hold auto refresh for one hour')}; echo; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 hour'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`));
+			this.submenu3.menu.addAction(_("Hold auto refresh for one day"), () => this._executeAction(`echo ${_('Hold auto refresh for one day')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 day'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`));
+			this.submenu3.menu.addAction(_("Hold auto refresh for one week"), () => this._executeAction(`echo ${_('Hold auto refresh for one week')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 week'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`));
+			this.submenu3.menu.addAction(_("Hold auto refresh for one month"), () => this._executeAction(`echo ${_('Hold auto refresh for one month')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '1 month'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time | grep hold`));
+			this.submenu3.menu.addAction(_("Cancel hold auto refresh"), () => this._executeAction(`echo ${_('Cancel auto refresh delay')}; echo; sudo snap set system refresh.hold=$(date --iso-8601=seconds -d '0 second'); echo; echo ${_('Refresh schedule')}; echo; snap refresh --time`));
+
+			this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 			
 			// run Snap Store snap app
-			this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 			this.menu.addAction(_("Run Snap Store application"), _ => {
 				Util.trySpawnCommandLine("snap-store");
 			});
@@ -195,7 +187,7 @@ var SnapMenu = GObject.registerClass(
 		// launch bash command
 		_executeAction(command) {
 			try {
-				Util.trySpawnCommandLine(`gnome-terminal -x bash -c \"echo ${_('Press Ctrl-C to cancel action.')}; echo; " + command + "; echo; echo --; read -n 1 -s -r -p '${_('Press any key to close...')}'\"`);
+				Util.trySpawnCommandLine(`gnome-terminal -x bash -c \"echo ${_('Press Ctrl-C to cancel action.')}; echo;  ${command} ; echo; echo --; read -n 1 -s -r -p '${_('Press any key to close...')}'\"`);
 			} catch(err) {
 				Main.notify(_("Error: unable to execute command in GNOME Terminal"));
 			}
@@ -212,38 +204,6 @@ var SnapMenu = GObject.registerClass(
 			this._executeAction(`echo ${_('List recent snap changes')}; echo; snap changes`);
 			this.notification.destroy();
 		};
-		
-		// main menu items
-		_addSnapMenuItem(item, index, array) {
-			if (index == 3) {
-				this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-			}
-
-			this.menu.addAction(item[0],_ => {
-				this._executeAction(item[1]);
-			});
-		}
-		
-		// snap options submenu items
-		_addOptionsSubmenuItem(item, index, array) {
-			this.submenu1.menu.addAction(item[0], _ => {
-				this._executeAction(item[1])
-			});
-		}
-		
-		// snap connections submenu items
-		_addConnectSubmenuItem(item, index, array) {
-			this.submenu2.menu.addAction(item[0], _ => {
-				this._executeAction(item[1])
-			});
-		}
-		
-		// refresh options submenu items
-		_addRefreshSubmenuItem(item, index, array) {
-			this.submenu3.menu.addAction(item[0], _ => {
-				this._executeAction(item[1])
-			});
-		}
 		
 		_destroy() {
 			if (this.refreshTimeout) {
@@ -264,7 +224,7 @@ class Extension {
 	}
 
 	enable() {
-	this.snap_indicator = new SnapMenu();
+		this.snap_indicator = new SnapMenu();
 		Main.panel.addToStatusArea('snap-menu', this.snap_indicator);
 	}
 
@@ -276,4 +236,3 @@ class Extension {
 function init() {
 	return new Extension();
 }
-	

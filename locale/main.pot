@@ -1,0 +1,196 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-07-20 23:39-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: extension.js:40
+msgid "List installed snaps"
+msgstr ""
+
+#: extension.js:41 extension.js:212
+msgid "List recent snap changes"
+msgstr ""
+
+#: extension.js:42
+msgid "List available snap refresh"
+msgstr ""
+
+#: extension.js:43 extension.js:206
+msgid "Refresh installed snaps"
+msgstr ""
+
+#: extension.js:44
+msgid "Install snap..."
+msgstr ""
+
+#: extension.js:44 extension.js:45 extension.js:50 extension.js:51
+#: extension.js:52 extension.js:53 extension.js:54
+msgid "Enter snap name"
+msgstr ""
+
+#: extension.js:44 extension.js:51
+msgid "Available channels"
+msgstr ""
+
+#: extension.js:44
+msgid "Enter channel"
+msgstr ""
+
+#: extension.js:45
+msgid "Remove snap..."
+msgstr ""
+
+#: extension.js:50
+msgid "Snap info..."
+msgstr ""
+
+#: extension.js:51
+msgid "Refresh snap channel..."
+msgstr ""
+
+#: extension.js:51
+msgid "Refresh snap channel"
+msgstr ""
+
+#: extension.js:51
+msgid "Enter new channel"
+msgstr ""
+
+#: extension.js:52
+msgid "Revert snap refresh..."
+msgstr ""
+
+#: extension.js:53
+msgid "Enable snap..."
+msgstr ""
+
+#: extension.js:54
+msgid "Disable snap..."
+msgstr ""
+
+#: extension.js:59
+msgid "List available interfaces"
+msgstr ""
+
+#: extension.js:60
+msgid "List snap connections..."
+msgstr ""
+
+#: extension.js:61
+msgid "Connect snap..."
+msgstr ""
+
+#: extension.js:62
+msgid "Disconnect snap..."
+msgstr ""
+
+#: extension.js:67 extension.js:68 extension.js:69 extension.js:70
+#: extension.js:71 extension.js:72
+msgid "Refresh schedule"
+msgstr ""
+
+#: extension.js:68
+msgid "Hold auto refresh for one hour"
+msgstr ""
+
+#: extension.js:69
+msgid "Hold auto refresh for one day"
+msgstr ""
+
+#: extension.js:70
+msgid "Hold auto refresh for one week"
+msgstr ""
+
+#: extension.js:71
+msgid "Hold auto refresh for one month"
+msgstr ""
+
+#: extension.js:72
+msgid "Cancel hold auto refresh"
+msgstr ""
+
+#: extension.js:72
+msgid "Cancel auto refresh delay"
+msgstr ""
+
+#: extension.js:104
+msgid "Snap options"
+msgstr ""
+
+#: extension.js:109
+msgid "Snap connections"
+msgstr ""
+
+#: extension.js:114
+msgid "Refresh options"
+msgstr ""
+
+#: extension.js:120
+msgid "Run Snap Store application"
+msgstr ""
+
+#: extension.js:125
+msgid "Open Snap Store website"
+msgstr ""
+
+#: extension.js:144
+msgid "Auto updates disabled, reactivation"
+msgstr ""
+
+#: extension.js:149
+msgid "Auto updates enabled, next"
+msgstr ""
+
+#: extension.js:173
+msgid "Snap Manager"
+msgstr ""
+
+#: extension.js:176
+msgid "No snap refresh available"
+msgstr ""
+
+#: extension.js:180
+msgid "Refresh available, 1 snap needs to be updated"
+msgstr ""
+
+#: extension.js:182 extension.js:187
+msgid "Refresh now"
+msgstr ""
+
+#: extension.js:185
+msgid "Refresh available"
+msgstr ""
+
+#: extension.js:185
+msgid "snaps need to be updated"
+msgstr ""
+
+#: extension.js:190
+msgid "Recent changes"
+msgstr ""
+
+#: extension.js:198
+msgid "Press Ctrl-C to cancel action."
+msgstr ""
+
+#: extension.js:198
+msgid "Press any key to close..."
+msgstr ""
+
+#: extension.js:200
+msgid "Error: unable to execute command in GNOME Terminal"
+msgstr ""
