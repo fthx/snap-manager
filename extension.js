@@ -190,7 +190,7 @@ class SnapMenu extends PanelMenu.Button {
     // launch bash command
     _executeAction(command) {
     	try {
-    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"")
+    			Util.trySpawnCommandLine(`gnome-terminal -- bash -c \"echo Press Ctrl-C to cancel action.; echo;  ${command} ; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"`);
 			} catch(err) {
     			Main.notify("Error: unable to execute command in GNOME Terminal")
 		}
