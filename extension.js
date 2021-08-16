@@ -170,18 +170,20 @@ class SnapMenu extends PanelMenu.Button {
 				case -1:
 				   	this.notificationMessage = "No snap refresh available\n\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
+					this.notification.urgency = Urgency.NORMAL;
 					break;
 				case 1:
 					this.notificationMessage = "Refresh available, 1 snap needs to be updated:\n" + this.refreshNames + "\n\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
+					this.notification.urgency = Urgency.CRITICAL;
 					break;
 				default:
 					this.notificationMessage = "Refresh available, " + this.refreshCounter + " snaps need to be updated:\n" + this.refreshNames + "\n\n" + this.refreshTime;
 					this.notification = new MessageTray.Notification(this.notificationSource, this.notificationTitle, this.notificationMessage);
 					this.notification.addAction("Refresh now", this._snapRefresh.bind(this));
+					this.notification.urgency = Urgency.CRITICAL;
 			}
-			this.notification.urgency = Urgency.CRITICAL;
     		this.notification.addAction("Recent changes", this._snapChanges.bind(this));
     		this.notificationSource.showNotification(this.notification)
     	});
@@ -190,7 +192,7 @@ class SnapMenu extends PanelMenu.Button {
     // launch bash command
     _executeAction(command) {
     	try {
-    			Util.trySpawnCommandLine(`gnome-terminal -- bash -c \"echo Press Ctrl-C to cancel action.; echo;  ${command} ; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"`);
+    			Util.trySpawnCommandLine("gnome-terminal -x bash -c \"echo Press Ctrl-C to cancel action.; echo; " + command + "; echo; echo --; read -n 1 -s -r -p 'Press any key to close...'\"")
 			} catch(err) {
     			Main.notify("Error: unable to execute command in GNOME Terminal")
 		}
