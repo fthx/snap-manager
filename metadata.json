@@ -5,9 +5,11 @@
   "shell-version": [
     "3.36",
     "3.38",
-    "40"
+    "40",
+    "41",
+    "42"
   ],
   "url": "https://github.com/fthx/snap-manager",
   "uuid": "snap-manager@fthx",
-  "version": 33
+  "version": 34
 }
